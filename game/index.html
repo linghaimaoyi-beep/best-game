@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Lumen Drift — a neon arena survival game</title>
+<style>
+  :root {
+    --accent: #37f4e4;
+    --gold: #ffd94a;
+    --text: #eaf2ff;
+    --text-dim: #9db1d8;
+    --panel: rgba(10, 16, 44, 0.86);
+    --panel-edge: #2a3a6e;
+    --danger: #ff5d73;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; height: 100%; overflow: hidden;
+    background: #04060f;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    color: var(--text);
+  }
+  #stage {
+    position: fixed; inset: 0; margin: auto;
+    width: min(100vw, 177.78vh);
+    height: min(100vh, 56.25vw);
+    background: #070b1d;
+  }
+  #game {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    display: block; touch-action: none; cursor: crosshair;
+  }
+  .screen {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; padding: 24px;
+    background: radial-gradient(ellipse at center, rgba(7, 11, 29, 0.25) 0%, rgba(4, 6, 15, 0.78) 100%);
+  }
+  .hidden { display: none !important; }
+  .eyebrow {
+    letter-spacing: 0.35em; text-transform: uppercase;
+    font-size: 13px; font-weight: 700; color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-size: clamp(44px, 7vw, 84px);
+    line-height: 0.95; font-weight: 800; letter-spacing: 0.04em;
+    color: #fff;
+    text-shadow: 0 0 24px rgba(55, 244, 228, 0.65), 0 0 64px rgba(55, 244, 228, 0.3);
+  }
+  h1 .lumen { color: var(--accent); }
+  .tagline {
+    margin: 0 0 22px; font-size: clamp(15px, 1.6vw, 19px);
+    color: var(--text-dim); max-width: 560px; line-height: 1.5;
+  }
+  .tagline strong { color: var(--gold); font-weight: 700; }
+  .controls {
+    display: flex; gap: 10px 22px; flex-wrap: wrap; justify-content: center;
+    margin: 0 0 26px; max-width: 640px;
+    font-size: 14px; color: var(--text-dim); line-height: 1.6;
+  }
+  .controls b { color: var(--text); font-weight: 700; }
+  .controls .key {
+    display: inline-block; padding: 1px 8px; margin-right: 4px;
+    border: 1px solid var(--panel-edge); border-bottom-width: 2px;
+    border-radius: 5px; background: rgba(255,255,255,0.07);
+    color: var(--text); font-weight: 700; font-size: 12px;
+  }
+  .button {
+    appearance: none; border: 0; cursor: pointer;
+    padding: 14px 34px; border-radius: 10px;
+    font: 700 17px/1 "Segoe UI", system-ui, sans-serif;
+    letter-spacing: 0.04em; color: #04121a;
+    background: linear-gradient(180deg, #5ffcec, #23c9b8);
+    box-shadow: 0 0 0 1px rgba(55,244,228,0.6), 0 8px 28px rgba(55,244,228,0.35);
+    transition: transform 0.08s ease, box-shadow 0.08s ease;
+  }
+  .button:hover { transform: translateY(-2px); box-shadow: 0 0 0 1px rgba(55,244,228,0.8), 0 12px 32px rgba(55,244,228,0.45); }
+  .button:active { transform: translateY(0); }
+  .button.ghost {
+    background: rgba(255,255,255,0.07); color: var(--text);
+    box-shadow: 0 0 0 1px var(--panel-edge);
+  }
+  .button.ghost:hover { box-shadow: 0 0 0 1px var(--accent); }
+  .button-row { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; }
+  .best-line { margin: 18px 0 0; font-size: 14px; color: var(--text-dim); }
+  .best-line b { color: var(--gold); }
+  h2 {
+    margin: 0 0 6px;
+    font-size: clamp(30px, 4vw, 48px); font-weight: 800; letter-spacing: 0.03em;
+    color: #fff; text-shadow: 0 0 22px rgba(55, 244, 228, 0.5);
+  }
+  h2.danger { text-shadow: 0 0 22px rgba(255, 93, 115, 0.6); }
+  h2.gold { text-shadow: 0 0 22px rgba(255, 217, 74, 0.55); }
+  .subtitle { margin: 0 0 20px; color: var(--text-dim); font-size: 16px; }
+  .stats {
+    display: flex; gap: 34px; flex-wrap: wrap; justify-content: center;
+    margin: 0 0 26px;
+  }
+  .stat { min-width: 110px; }
+  .stat .value {
+    display: block; font-size: 34px; font-weight: 800; line-height: 1.1;
+    color: #fff;
+  }
+  .stat .value.gold { color: var(--gold); }
+  .stat .label {
+    display: block; margin-top: 4px;
+    font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .new-best {
+    margin: 0 0 18px; padding: 8px 18px;
+    border-radius: 999px; font-weight: 700; font-size: 14px;
+    color: #231a00; background: linear-gradient(180deg, #ffe98a, #ffc93c);
+    box-shadow: 0 4px 18px rgba(255, 217, 74, 0.4);
+  }
+  #upgrade-cards {
+    display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+    margin: 6px 0 20px; max-width: 860px;
+  }
+  .upgrade-card {
+    appearance: none; cursor: pointer; text-align: left;
+    width: 240px; padding: 20px 18px 16px; border-radius: 14px;
+    background: var(--panel);
+    border: 1px solid var(--panel-edge);
+    color: var(--text);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+    transition: transform 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease;
+    font-family: inherit;
+  }
+  .upgrade-card:hover {
+    transform: translateY(-4px);
+    border-color: var(--accent);
+    box-shadow: 0 14px 34px rgba(0,0,0,0.5), 0 0 0 1px rgba(55,244,228,0.5);
+  }
+  .upgrade-icon {
+    display: block; font-size: 30px; line-height: 1; margin-bottom: 10px;
+    color: var(--gold); text-shadow: 0 0 16px rgba(255, 217, 74, 0.6);
+  }
+  .upgrade-name { display: block; font-size: 17px; font-weight: 800; margin-bottom: 6px; }
+  .upgrade-description { display: block; font-size: 14px; line-height: 1.45; color: var(--text-dim); margin-bottom: 12px; }
+  .upgrade-key { display: block; font-size: 12px; color: var(--accent); letter-spacing: 0.08em; }
+  .hint { margin: 14px 0 0; font-size: 13px; color: var(--text-dim); }
+  #mute-button {
+    position: absolute; top: 12px; right: 12px; z-index: 5;
+    appearance: none; cursor: pointer;
+    padding: 8px 12px; border-radius: 8px;
+    border: 1px solid var(--panel-edge);
+    background: rgba(5, 8, 24, 0.7); color: var(--text);
+    font: 600 13px/1 "Segoe UI", system-ui, sans-serif;
+  }
+  #mute-button:hover { border-color: var(--accent); }
+  /* Read aloud, never shown: the status line screen readers announce. */
+  #status {
+    position: absolute; width: 1px; height: 1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="game" width="1280" height="720" aria-label="Lumen Drift: pilot your ship, survive the swarm, gather the light"></canvas>
+
+  <button id="mute-button" type="button" aria-pressed="false">🔊 Sound on</button>
+
+  <div id="screen-title" class="screen">
+    <p class="eyebrow">A neon arena survival game</p>
+    <h1><span class="lumen">LUMEN</span> DRIFT</h1>
+    <p class="tagline">The swarm is drawn to your light. Survive ten waves, gather <strong>star shards</strong>, and forge your ship into something the dark cannot swallow.</p>
+    <div class="controls">
+      <span><span class="key">W A S D</span> or <span class="key">← ↑ ↓ →</span> move</span>
+      <span><span class="key">Mouse</span> aim — your ship fires on its own</span>
+      <span><span class="key">Space</span> dash through danger</span>
+      <span><span class="key">P</span> pause &nbsp;·&nbsp; <span class="key">M</span> mute</span>
+    </div>
+    <div class="button-row">
+      <button id="start-button" class="button" type="button">▶&nbsp; Start run</button>
+    </div>
+    <p class="best-line"><b id="title-best">No runs yet — set the first best score.</b></p>
+  </div>
+
+  <div id="screen-upgrade" class="screen hidden">
+    <p class="eyebrow">Wave cleared</p>
+    <h2>Choose an upgrade</h2>
+    <p class="subtitle">Pick one. Your ship keeps it for the rest of the run.</p>
+    <div id="upgrade-cards"></div>
+    <p class="hint">Click a card, or press 1, 2 or 3.</p>
+  </div>
+
+  <div id="screen-gameover" class="screen hidden">
+    <p class="eyebrow">The light goes out</p>
+    <h2 class="danger">Game over</h2>
+    <p class="subtitle">The swarm takes another pilot. The drift remembers your run.</p>
+    <p id="new-best" class="new-best hidden">★ New best score! ★</p>
+    <div class="stats">
+      <div class="stat"><span class="value gold" id="final-score">0</span><span class="label">Score</span></div>
+      <div class="stat"><span class="value" id="final-wave">0</span><span class="label">Wave reached</span></div>
+      <div class="stat"><span class="value" id="final-kills">0</span><span class="label">Kills</span></div>
+      <div class="stat"><span class="value" id="final-shards">0</span><span class="label">Shards</span></div>
+      <div class="stat"><span class="value" id="final-best">0</span><span class="label">Best</span></div>
+    </div>
+    <div class="button-row">
+      <button id="restart-button" class="button" type="button">↻&nbsp; Play again</button>
+    </div>
+    <p class="hint">Press R to restart.</p>
+  </div>
+
+  <div id="screen-victory" class="screen hidden">
+    <p class="eyebrow">Wave 10 cleared</p>
+    <h2 class="gold">Victory!</h2>
+    <p class="subtitle">You held the light through all ten waves. The drift is yours — for now.</p>
+    <div class="stats">
+      <div class="stat"><span class="value gold" id="victory-score">0</span><span class="label">Score</span></div>
+      <div class="stat"><span class="value" id="victory-kills">0</span><span class="label">Kills</span></div>
+      <div class="stat"><span class="value" id="victory-best">0</span><span class="label">Best</span></div>
+    </div>
+    <div class="button-row">
+      <button id="endless-button" class="button" type="button">∞&nbsp; Keep going — endless</button>
+      <button id="again-button" class="button ghost" type="button">↻&nbsp; New run</button>
+    </div>
+    <p class="hint">Endless mode: waves keep coming, harder every time.</p>
+  </div>
+
+  <div id="screen-pause" class="screen hidden">
+    <p class="eyebrow">Paused</p>
+    <h2>Take a breath</h2>
+    <p class="subtitle">The swarm waits. It is patient. It is also hungry.</p>
+    <div class="button-row">
+      <button id="resume-button" class="button" type="button">▶&nbsp; Resume</button>
+      <button id="quit-button" class="button ghost" type="button">Quit to title</button>
+    </div>
+    <p class="hint">Press P or Esc to resume.</p>
+  </div>
+
+  <p id="status" role="status" aria-live="polite"></p>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
